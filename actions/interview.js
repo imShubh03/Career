@@ -41,16 +41,48 @@ export async function generateQuiz() {
         }
       ]
     }
+
+    Make sure all property names and string values are properly enclosed in double quotes. Do not include any markdown formatting in your response.
   `;
 
   try {
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
-    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
-    const quiz = JSON.parse(cleanedText);
-
-    return quiz.questions;
+    
+    // More robust JSON cleaning
+    let cleanedText = text;
+    
+    // Remove any markdown code blocks
+    cleanedText = cleanedText.replace(/```json|```/g, "").trim();
+    
+    // Try to extract JSON if it's embedded in other text
+    const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanedText = jsonMatch[0];
+    }
+    
+    try {
+      const quiz = JSON.parse(cleanedText);
+      return quiz.questions;
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      console.error("Problematic JSON:", cleanedText);
+      
+      // Try a more aggressive approach to fix common JSON issues
+      const fixedJson = cleanedText
+        // Ensure property names are double-quoted
+        .replace(/(\s*)(\w+)(\s*):/g, '$1"$2"$3:')
+        // Fix any single-quoted strings
+        .replace(/'/g, '"');
+        
+      try {
+        const quiz = JSON.parse(fixedJson);
+        return quiz.questions;
+      } catch (secondError) {
+        throw new Error("Failed to parse quiz JSON");
+      }
+    }
   } catch (error) {
     console.error("Error generating quiz:", error);
     throw new Error("Failed to generate quiz questions");
