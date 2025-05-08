@@ -55,6 +55,7 @@ const OnboardingForm = ({ industries }) => {
       const formattedIndustry = `${values.industry}-${values.subIndustry
         .toLowerCase()
         .replace(/ /g, "-")}`;
+        //eg tech-software-development
 
       await updateUserFn({
         ...values,
